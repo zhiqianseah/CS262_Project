@@ -1,7 +1,7 @@
 import socket
 import thread 		#for spawning new threads to handle clients
 import json			#for serializing data
-
+import Queue
 
 class StockExchangeServer:
 
@@ -15,6 +15,7 @@ class StockExchangeServer:
 
 		self.account = {}
 		self.companies = {}
+                self.pending_orders = Queue.Queue()
 		#populate the companies with initial values
 		for x in range(Num_Companies):
 			self.companies['Company'+str(x)] = StartingPrice
@@ -46,6 +47,7 @@ class StockExchangeServer:
 		if username not in self.account:
 			self.account[username] = {}
 			self.account[username]['bank'] = 1000
+			self.account[username]['position'] = {}
 	 		client.send("Welcome, new user!. We have created a new account for you.")
 	 	else:
 		 	client.send("Welcome Back, "+str(username)+".") 		
@@ -96,6 +98,33 @@ class StockExchangeServer:
 			for company in self.companies:
 				reply_dict['data'][company] = self.companies[company]
 			return reply_dict
+                elif msg_dict['request_type'] == "buy":
+                        # Response to the buy request
+                        reply_dict['response_type'] = "buyResponse"
+                        # Parse request message
+                        ticketNumber = msg_dict['ticketNumber']
+                        tick = msg_dict['tick']
+                        volume = msg_dict['volume']
+                        price = msg_dict['price']
+                        # Enough money in bank for the order
+                        if self.companies[tick] * volume <= self.account[username]['bank']:
+                            # Order can be executed
+                                if price >= self.companies[tick]:
+                                        self.account[username]['bank'] -= self.companies[tick] * volume
+                                        self.account[username]['position'][tick] += volume
+                                        reply_dict['status'] = "Transaction succeeded"
+                                else:
+                                        # Put the order on a queue
+                                        self.pending_orders.put(msg_dict)
+                                        reply_dict['status'] = "Pending Order"
+                        # Don't have enough money to execute the order
+                        else:
+                                reply_dict['status'] = "Not enough account balance"
+                        return reply_dict
+                elif msg_dict['request_type'] == "sell":
+                        pass
+                elif msg_dict['request_type'] == "cancel":                        
+                        pass
 
 		#opcode not recognized. return invalid command
 		reply_dict['response_type']= "invalidCommand"
