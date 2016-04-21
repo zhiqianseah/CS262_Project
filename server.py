@@ -15,7 +15,7 @@ class StockExchangeServer:
 
 		self.account = {}
 		self.companies = {}
-                self.pending_orders = Queue.Queue()
+                self.pending_orders = {}
 		#populate the companies with initial values
 		for x in range(Num_Companies):
 			self.companies['Company'+str(x)] = StartingPrice
@@ -48,6 +48,7 @@ class StockExchangeServer:
 			self.account[username] = {}
 			self.account[username]['bank'] = 1000
 			self.account[username]['position'] = {}
+                        self.pending_orders[username] = Queue.Queue()
 	 		client.send("Welcome, new user!. We have created a new account for you.")
 	 	else:
 		 	client.send("Welcome Back, "+str(username)+".") 		
@@ -102,10 +103,11 @@ class StockExchangeServer:
                         # Response to the buy request
                         reply_dict['response_type'] = "buyResponse"
                         # Parse request message
-                        ticketNumber = msg_dict['ticketNumber']
-                        tick = msg_dict['tick']
-                        volume = msg_dict['volume']
-                        price = msg_dict['price']
+                        msg_data = msg_dict['data']
+                        ticketNumber = msg_data['ticketNumber']
+                        tick = msg_data['tick']
+                        volume = msg_data['volume']
+                        price = msg_data['price']
                         # Enough money in bank for the order
                         if self.companies[tick] * volume <= self.account[username]['bank']:
                             # Order can be executed
@@ -115,7 +117,7 @@ class StockExchangeServer:
                                         reply_dict['status'] = "Transaction succeeded"
                                 else:
                                         # Put the order on a queue
-                                        self.pending_orders.put(msg_dict)
+                                        self.pending_orders[username].put(msg_dict)
                                         reply_dict['status'] = "Pending Order"
                         # Don't have enough money to execute the order
                         else:
