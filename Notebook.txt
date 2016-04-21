@@ -1,0 +1,27 @@
+Notebook
+
+Setting up server and multi-client system. Client takes a user input string, sends it over to the server, and the server echos it back. 
+
+
+
+Next, we want to send data over the wire, specifically, we want to send dictionaries of data. This requires us to serialize the data when sending, 
+and deserializing when receiving. This is done via json.dumps and json.loads
+
+We then set up the dictionaries for the data on the server. The dictionaries are:
+	1. Account
+		Key = username
+		Value = dictionary of bank balances and currently held stocks
+
+	2. Companies
+		key = company name
+		Value = current price
+
+We need some form of login for the user to identify him. So, when the client connects to the server, the client first send over the username of the client
+This is set as a parameter during client initialization. the server checks if the user exists in the Account dict. if the user doesn't exist, create a new account
+and give him $1000 in his bank account. The server then sends a welcome or welcome back message back to the client
+
+
+We first start with the easier commands, namely querying the price of companies and the current bank account balance. The user input is parsed by Parse_Input on the client side.
+This populates a command dictionary (more details can be found on the project proposal page), which is serialized and sent to the server. The server deserialize the string into a
+dictionary, check the commands and relevant data, and respond accordingly with a response dictionary. After serializing and deserializing, the response dictionary is parsed by 
+Parse_Print_Reply function on the client side, and the data is printed in a user-friendly format
