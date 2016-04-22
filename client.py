@@ -16,6 +16,7 @@ class PlayerClient:
 		#run a loop to get user commands
 		self.CommandLoop()
 		
+		
 		#specify the information in a standard order
 		
 	
