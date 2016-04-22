@@ -11,12 +11,12 @@ class PlayerClient:
 		self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 		self.sock.connect((host, port))
 		self.user = username
-
+		self.OrderInfo=[]
 		#run a loop to get user commands
 		self.CommandLoop()
 		
 		#specify the information in a standard order
-		self.OrderInfo=['ticktNumber','tick','volume','price','expirationTime']
+		self.OrderInfo=['ticketNumber','tick','volume','price','expirationTime']
 	
 	def CommandLoop(self):
 
@@ -74,7 +74,7 @@ class PlayerClient:
 
                 #store the data of buy and sell
 		if command_dict['request_type']=="buy" or command_dict['request_type']=="sell":
-			if len(msg_split)-1 ! = len(self.OrderInfo)
+			if len(msg_split)-1 != len(self.OrderInfo):
 				print "Too less or more information"
 			else:
 			#store the information of buy and sell order
@@ -86,7 +86,7 @@ class PlayerClient:
 					command_dict['data'][order]=value
 		#store the data of request type cancel		
 		elif command_dict['request_type']=="cancel":
-			if len(msg_split) ! = 2:
+			if len(msg_split) != 2:
 				print "Too less or more information"
 			else:
 				command_dict['data']={}
