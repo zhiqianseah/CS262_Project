@@ -112,7 +112,15 @@ class PlayerClient:
 			for company in msg['data']:
 				print company + ":", msg['data'][company] 
 		#print "Received:", msg
+		#print buy status
+		if msg['response_type']=="buyResponse":
+			print "Buy Status", msg['status']
 		
+		if msg['response_type']=="sellResponse":
+			print "Sell Status",msg['status']
+		
+		if msg['response_type']=="Cancel":
+			print "Cancel Status", msg['status']
 		
 if __name__ == "__main__":
     client = PlayerClient(username = 'user1')
