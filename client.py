@@ -80,7 +80,7 @@ class PlayerClient:
 			#store the information of buy and sell order
 				command_dict['data']={}				
                                 # Set expiration datetime
-                                msg_split[-1] += time.time()
+                                msg_split[-1] = float(msg_split[-1])+time.time()
                                 # Set request values
                                 for order, value in zip(self.OrderInfo, msg_split[1:]):
 					command_dict['data'][order]=value
