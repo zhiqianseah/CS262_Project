@@ -159,7 +159,7 @@ class StockExchangeServer:
                         ticketNumber = msg_data['ticketNumber']
                         # Cancel pending order
                         for i in range(len(self.pending_orders[username])):
-                                if self.pending_orders[username][i]['ticketNumber'] == ticketNumber:
+                                if self.pending_orders[username][i]['data']['ticketNumber'] == ticketNumber:
                                         del self.pending_orders[username][i]
                                         print 'Order cancelled'
                                         reply_dict['status'] = 'Order cancelled'
