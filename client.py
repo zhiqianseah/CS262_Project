@@ -74,7 +74,7 @@ class PlayerClient:
 
                 #store the data of buy and sell
 		if command_dict['request_type']=="buy" or command_dict['request_type']=="sell":
-			if len(msg_split)-1!= len(self.OrderInfo):
+			if len(msg_split)-1 != len(self.OrderInfo):
 				print "Too less or more information"
 			else:
 			#store the information of buy and sell order
