@@ -119,7 +119,7 @@ class PlayerClient:
 		if msg['response_type']=="sellResponse":
 			print "Sell Status",msg['status']
 		
-		if msg['response_type']=="Cancel":
+		if msg['response_type']=="cancelResponse":
 			print "Cancel Status", msg['status']
 		
 if __name__ == "__main__":
