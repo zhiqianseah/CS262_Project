@@ -1,7 +1,6 @@
 import socket
 import thread 		#for spawning new threads to handle clients
 import json			#for serializing data
-import Queue
 
 class StockExchangeServer:
 
@@ -48,7 +47,7 @@ class StockExchangeServer:
 			self.account[username] = {}
 			self.account[username]['bank'] = 1000
 			self.account[username]['position'] = {}
-                        self.pending_orders[username] = Queue.Queue()
+                        self.pending_orders[username] = []
 	 		client.send("Welcome, new user!. We have created a new account for you.")
 	 	else:
 		 	client.send("Welcome Back, "+str(username)+".") 		
@@ -117,16 +116,50 @@ class StockExchangeServer:
                                         reply_dict['status'] = "Transaction succeeded"
                                 else:
                                         # Put the order on a queue
-                                        self.pending_orders[username].put(msg_dict)
+                                        self.pending_orders[username].append(msg_dict)
                                         reply_dict['status'] = "Pending Order"
                         # Don't have enough money to execute the order
                         else:
                                 reply_dict['status'] = "Not enough account balance"
                         return reply_dict
                 elif msg_dict['request_type'] == "sell":
-                        pass
-                elif msg_dict['request_type'] == "cancel":                        
-                        pass
+                        # Response to the buy request
+                        reply_dict['response_type'] = "sellResponse"
+                        # Parse request message
+                        msg_data = msg_dict['data']
+                        ticketNumber = msg_data['ticketNumber']
+                        tick = msg_data['tick']
+                        volume = msg_data['volume']
+                        price = msg_data['price']
+                        # Enough money in bank for the order
+                        if volume <= self.account[username]['position'][tick]:
+                            # Order can be executed
+                                if price <= self.companies[tick]:
+                                        self.account[username]['position'][tick] -= volume
+                                        self.account[username]['bank'] += self.companies[tick] * volume
+                                        reply_dict['status'] = "Transaction succeeded"
+                                else:
+                                        # Put the order on a queue
+                                        self.pending_orders[username].append(msg_dict)
+                                        reply_dict['status'] = "Pending Order"
+                        # Don't have enough money to execute the order
+                        else:
+                                reply_dict['status'] = "Not enough shares to sell"
+                        return reply_dict
+
+                elif msg_dict['request_type'] == "cancel":
+                        # Response to the buy request
+                        reply_dict['response_type'] = "cancelResponse"
+                        reply_dict['status'] = "Order not found"
+                        # Parse request message
+                        msg_data = msg_dict['data']
+                        ticketNumber = msg_data['ticketNumber']
+                        # Cancel pending order
+                        for i in range(len(self.pending_orders[username])):
+                                if self.pending_orders[username][i]['ticketNumber'] == ticketNumber:
+                                        del self.pending_orders[username][i]
+                                        reply_dict['status'] = 'Order cancelled'
+                        return reply_dict
 
 		#opcode not recognized. return invalid command
 		reply_dict['response_type']= "invalidCommand"
