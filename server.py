@@ -105,14 +105,13 @@ class StockExchangeServer:
                         msg_data = msg_dict['data']
                         ticketNumber = msg_data['ticketNumber']
                         tick = msg_data['tick']
-                        volume = msg_data['volume']
-                        price = msg_data['price']
+                        volume = int(msg_data['volume'])
+                        price = float(msg_data['price'])
                         # Enough money in bank for the order
                         if self.companies[tick] * volume <= self.account[username]['bank']:
                             # Order can be executed
                                 if price >= self.companies[tick]:
                                         self.account[username]['bank'] -= self.companies[tick] * volume
-                                        self.account[username]['position'][tick] += volume
                                         reply_dict['status'] = "Transaction succeeded"
                                 else:
                                         # Put the order on a queue
@@ -129,8 +128,8 @@ class StockExchangeServer:
                         msg_data = msg_dict['data']
                         ticketNumber = msg_data['ticketNumber']
                         tick = msg_data['tick']
-                        volume = msg_data['volume']
-                        price = msg_data['price']
+                        volume = int(msg_data['volume'])
+                        price = float(msg_data['price'])
                         # Enough money in bank for the order
                         if volume <= self.account[username]['position'][tick]:
                             # Order can be executed
@@ -158,6 +157,7 @@ class StockExchangeServer:
                         for i in range(len(self.pending_orders[username])):
                                 if self.pending_orders[username][i]['ticketNumber'] == ticketNumber:
                                         del self.pending_orders[username][i]
+                                        print 'Order cancelled'
                                         reply_dict['status'] = 'Order cancelled'
                         return reply_dict
 
