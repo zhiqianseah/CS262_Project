@@ -112,6 +112,10 @@ class StockExchangeServer:
                             # Order can be executed
                                 if price >= self.companies[tick]:
                                         self.account[username]['bank'] -= self.companies[tick] * volume
+                                        if tick in self.account[username]['position']:
+                                                self.account[username]['position'][tick] += volume
+                                        else:
+                                                self.account[username]['position'][tick] = volume
                                         reply_dict['status'] = "Transaction succeeded"
                                 else:
                                         # Put the order on a queue
