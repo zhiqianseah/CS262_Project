@@ -14,7 +14,7 @@ class StockExchangeServer:
 
 		self.account = {}
 		self.companies = {}
-                self.pending_orders = {}
+		self.pending_orders = {}
 		#populate the companies with initial values
 		for x in range(Num_Companies):
 			self.companies['Company'+str(x)] = StartingPrice
@@ -47,7 +47,7 @@ class StockExchangeServer:
 			self.account[username] = {}
 			self.account[username]['bank'] = 1000
 			self.account[username]['position'] = {}
-                        self.pending_orders[username] = []
+			self.pending_orders[username] = []
 	 		client.send("Welcome, new user!. We have created a new account for you.")
 	 	else:
 		 	client.send("Welcome Back, "+str(username)+".") 		
@@ -66,9 +66,6 @@ class StockExchangeServer:
 
 				#process the message
 				return_msg = self.Process_Message(msg_dict, username)
-
-
-
 
 				data_string = json.dumps(return_msg)
 				#send an acknowledgement back to the server
@@ -98,72 +95,78 @@ class StockExchangeServer:
 			for company in self.companies:
 				reply_dict['data'][company] = self.companies[company]
 			return reply_dict
-                elif msg_dict['request_type'] == "buy":
-                        # Response to the buy request
-                        reply_dict['response_type'] = "buyResponse"
-                        # Parse request message
-                        msg_data = msg_dict['data']
-                        ticketNumber = msg_data['ticketNumber']
-                        tick = msg_data['tick']
-                        volume = int(msg_data['volume'])
-                        price = float(msg_data['price'])
-                        # Enough money in bank for the order
-                        if self.companies[tick] * volume <= self.account[username]['bank']:
-                            # Order can be executed
-                                if price >= self.companies[tick]:
-                                        self.account[username]['bank'] -= self.companies[tick] * volume
-                                        if tick in self.account[username]['position']:
-                                                self.account[username]['position'][tick] += volume
-                                        else:
-                                                self.account[username]['position'][tick] = volume
-                                        reply_dict['status'] = "Transaction succeeded"
-                                else:
-                                        # Put the order on a queue
-                                        self.pending_orders[username].append(msg_dict)
-                                        reply_dict['status'] = "Pending Order"
-                        # Don't have enough money to execute the order
-                        else:
-                                reply_dict['status'] = "Not enough account balance"
-                        return reply_dict
-                elif msg_dict['request_type'] == "sell":
-                        # Response to the buy request
-                        reply_dict['response_type'] = "sellResponse"
-                        # Parse request message
-                        msg_data = msg_dict['data']
-                        ticketNumber = msg_data['ticketNumber']
-                        tick = msg_data['tick']
-                        volume = int(msg_data['volume'])
-                        price = float(msg_data['price'])
-                        # Enough money in bank for the order
-                        if volume <= self.account[username]['position'][tick]:
-                            # Order can be executed
-                                if price <= self.companies[tick]:
-                                        self.account[username]['position'][tick] -= volume
-                                        self.account[username]['bank'] += self.companies[tick] * volume
-                                        reply_dict['status'] = "Transaction succeeded"
-                                else:
-                                        # Put the order on a queue
-                                        self.pending_orders[username].append(msg_dict)
-                                        reply_dict['status'] = "Pending Order"
-                        # Don't have enough money to execute the order
-                        else:
-                                reply_dict['status'] = "Not enough shares to sell"
-                        return reply_dict
+		elif msg_dict['request_type'] == 'queryPendingOrder':
+			#TODO
+			reply_dict['response_type'] = 'queryPendingOrderResponse'
+			reply_dict['data'] = self.pending_orders[username]
 
-                elif msg_dict['request_type'] == "cancel":
-                        # Response to the buy request
-                        reply_dict['response_type'] = "cancelResponse"
-                        reply_dict['status'] = "Order not found"
-                        # Parse request message
-                        msg_data = msg_dict['data']
-                        ticketNumber = msg_data['ticketNumber']
-                        # Cancel pending order
-                        for i in range(len(self.pending_orders[username])):
-                                if self.pending_orders[username][i]['data']['ticketNumber'] == ticketNumber:
-                                        del self.pending_orders[username][i]
-                                        print 'Order cancelled'
-                                        reply_dict['status'] = 'Order cancelled'
-                        return reply_dict
+			return reply_dict
+		elif msg_dict['request_type'] == "buy":
+				# Response to the buy request
+				reply_dict['response_type'] = "buyResponse"
+				# Parse request message
+				msg_data = msg_dict['data']
+				ticketNumber = msg_data['ticketNumber']
+				tick = msg_data['tick']
+				volume = int(msg_data['volume'])
+				price = float(msg_data['price'])
+				# Enough money in bank for the order
+				if self.companies[tick] * volume <= self.account[username]['bank']:
+					# Order can be executed
+						if price >= self.companies[tick]:
+								self.account[username]['bank'] -= self.companies[tick] * volume
+								if tick in self.account[username]['position']:
+										self.account[username]['position'][tick] += volume
+								else:
+										self.account[username]['position'][tick] = volume
+								reply_dict['status'] = "Transaction succeeded"
+						else:
+								# Put the order on a queue
+								self.pending_orders[username].append(msg_dict)
+								reply_dict['status'] = "Pending Order"
+				# Don't have enough money to execute the order
+				else:
+						reply_dict['status'] = "Not enough account balance"
+				return reply_dict
+		elif msg_dict['request_type'] == "sell":
+				# Response to the buy request
+				reply_dict['response_type'] = "sellResponse"
+				# Parse request message
+				msg_data = msg_dict['data']
+				ticketNumber = msg_data['ticketNumber']
+				tick = msg_data['tick']
+				volume = int(msg_data['volume'])
+				price = float(msg_data['price'])
+				# Enough money in bank for the order
+				if volume <= self.account[username]['position'][tick]:
+					# Order can be executed
+						if price <= self.companies[tick]:
+								self.account[username]['position'][tick] -= volume
+								self.account[username]['bank'] += self.companies[tick] * volume
+								reply_dict['status'] = "Transaction succeeded"
+						else:
+								# Put the order on a queue
+								self.pending_orders[username].append(msg_dict)
+								reply_dict['status'] = "Pending Order"
+				# Don't have enough money to execute the order
+				else:
+						reply_dict['status'] = "Not enough shares to sell"
+				return reply_dict
+
+		elif msg_dict['request_type'] == "cancel":
+				# Response to the buy request
+				reply_dict['response_type'] = "cancelResponse"
+				reply_dict['status'] = "Order not found"
+				# Parse request message
+				msg_data = msg_dict['data']
+				ticketNumber = msg_data['ticketNumber']
+				# Cancel pending order
+				for i in range(len(self.pending_orders[username])):
+						if self.pending_orders[username][i]['data']['ticketNumber'] == ticketNumber:
+								del self.pending_orders[username][i]
+								print 'Order cancelled'
+								reply_dict['status'] = 'Order cancelled'
+				return reply_dict
 
 		#opcode not recognized. return invalid command
 		reply_dict['response_type']= "invalidCommand"

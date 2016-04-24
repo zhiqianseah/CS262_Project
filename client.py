@@ -74,7 +74,7 @@ class PlayerClient:
 		#store it in the relevant sections of the command dictionary
 		command_dict['request_type'] = msg_split[0]
 
-                #store the data of buy and sell
+		#store the data of buy and sell
 		if command_dict['request_type']=="buy" or command_dict['request_type']=="sell":
 			print len(msg_split),len(self.OrderInfo)
 			
@@ -83,10 +83,10 @@ class PlayerClient:
 			else:
 			#store the information of buy and sell order
 				command_dict['data']={}				
-                                # Set expiration datetime
-                                msg_split[-1] = float(msg_split[-1])+time.time()
-                                # Set request values
-                                for order, value in zip(self.OrderInfo, msg_split[1:]):
+				# Set expiration datetime
+				msg_split[-1] = float(msg_split[-1])+time.time()
+				# Set request values
+				for order, value in zip(self.OrderInfo, msg_split[1:]):
 					command_dict['data'][order]=value
 		#store the data of request type cancel		
 		elif command_dict['request_type']=="cancel":
@@ -94,7 +94,11 @@ class PlayerClient:
 				print "Too less or more information"
 			else:
 				command_dict['data']={}
-				command_dict['data']['ticketNumber']=msg_split[1]			
+				command_dict['data']['ticketNumber']=msg_split[1]
+		# elif command_dict['request_type'] == 'pending':
+		# 	# A request to get the pending orders for the current user
+		# 	command_dict['data'] = {'username': }
+
 		return command_dict
 
 	#This function parse the reply dictionary from the server, and print the relevant information
@@ -110,7 +114,20 @@ class PlayerClient:
 		if msg['response_type'] == "queryPriceResponse":
 			print "Prices of Companies:"
 			for company in msg['data']:
-				print company + ":", msg['data'][company] 
+				print company + ":", msg['data'][company]
+
+		if msg['response_type'] == "queryPendingOrderResponse":
+			print '''Number	|	Type	|	Company	|	Volume	|	Price	|	Expiration	|'''
+			print '-------------------------------------------------------------------------------------------------'
+
+			for order_dict in msg['data']:
+				print '%s\t|\t%s\t|\t%s|\t%s\t|\t%s\t|\t%s'%(order_dict['data']['ticketNumber'],
+				 order_dict['request_type'],
+				 order_dict['data']['tick'],
+				 order_dict['data']['volume'],
+				 order_dict['data']['price'],
+				 float(order_dict['data']['expirationTime']) - time.time())
+
 		#print "Received:", msg
 		#print buy status
 		if msg['response_type']=="buyResponse":
