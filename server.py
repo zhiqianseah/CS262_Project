@@ -1,6 +1,7 @@
 import socket
 import thread 		#for spawning new threads to handle clients
 import json			#for serializing data
+import sock_helper
 
 class StockExchangeServer:
 
@@ -38,7 +39,7 @@ class StockExchangeServer:
  	def Client_Handling_Thread(self, client, addr):
 
  		#the first message received by the user is his username to identify himself
-		username = client.recv(1024)		
+		username = sock_helper.recv_msg(client)
 		print addr, ' >> ', username
 
 		#if the stock exchange sees a new user, create a new account for him and give him 1000 dollars
@@ -48,9 +49,10 @@ class StockExchangeServer:
 			self.account[username]['bank'] = 1000
 			self.account[username]['position'] = {}
 			self.pending_orders[username] = []
-	 		client.send("Welcome, new user!. We have created a new account for you.")
+
+			sock_helper.send_msg("Welcome, new user!. We have created a new account for you.", client)
 	 	else:
-		 	client.send("Welcome Back, "+str(username)+".") 		
+			sock_helper.send_msg("Welcome Back, "+str(username)+".", client)
 
 
  		#listen to the client messages and respond accordingly
@@ -58,7 +60,7 @@ class StockExchangeServer:
  			try:
 
  				#receive the data from the client
-				msg_raw = client.recv(1024)
+				msg_raw = sock_helper.recv_msg(client)
 
 				#deserialize the data into a dictionary
 				msg_dict = json.loads(msg_raw) 
@@ -69,7 +71,7 @@ class StockExchangeServer:
 
 				data_string = json.dumps(return_msg)
 				#send an acknowledgement back to the server
-	 			client.send(data_string)
+				sock_helper.send_msg(data_string, client)
 
 	 		except Exception as e:
 	 			print "Exception: ", e

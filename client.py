@@ -1,6 +1,7 @@
 import socket
 import json			#for serializing data
 import time
+import sock_helper
 
 class PlayerClient:
 
@@ -23,10 +24,11 @@ class PlayerClient:
 	def CommandLoop(self):
 
 		#the first message to the server is the username to identify the user
-		self.sock.send(self.user)
+		sock_helper.send_msg(self.user, self.sock)
 
 		#get reply from the server regarding the login
-		msg = self.sock.recv(1024)
+		msg = sock_helper.recv_msg(self.sock)
+
 		print msg
 
 		#while loop to get user input and set to the server
@@ -48,10 +50,11 @@ class PlayerClient:
 				#print data_string
 
 				#send the msg to the socket
-				self.sock.send(data_string)
+				sock_helper.send_msg(data_string, self.sock)
 
 				#get reply from the server and print it
-				reply_raw = self.sock.recv(1024)
+				reply_raw = sock_helper.recv_msg(self.sock)
+
 				msg = json.loads(reply_raw) 
 				self.Parse_Print_Reply(msg)
 
@@ -60,7 +63,6 @@ class PlayerClient:
 				print "Connection Broken. Quitting program"
 				self.sock.close()
 				break
-	
 	
 	
 	
