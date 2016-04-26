@@ -79,7 +79,7 @@ class PlayerClient:
 
 		#store the data of buy and sell
 		if command_dict['request_type']=="buy" or command_dict['request_type']=="sell":
-			print len(msg_split),len(self.OrderInfo)
+			#print len(msg_split),len(self.OrderInfo)
 			
 			if len(msg_split) != len(self.OrderInfo):
 				print "Too less or more information"
@@ -92,16 +92,17 @@ class PlayerClient:
 				for order, value in zip(self.OrderInfo[1:], msg_split[1:]):
 					command_dict['data'][order]=value
 				command_dict['data']['ticketNumber']=self.ticketNumber
+				print "ticket Number:",self.ticketNumber
 				self.ticketNumber+=1
 			
-			print self.ticketNumber
+			#print self.ticketNumber
 		#store the data of request type cancel		
 		elif command_dict['request_type']=="cancel":
 			if len(msg_split) != 2:
 				print "Too less or more information"
 			else:
 				command_dict['data']={}
-				print int(msg_split[1])
+				#print int(msg_split[1])
 				command_dict['data']['ticketNumber']=int(msg_split[1])
 		# elif command_dict['request_type'] == 'pending':
 		# 	# A request to get the pending orders for the current user
