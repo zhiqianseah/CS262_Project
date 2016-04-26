@@ -14,6 +14,7 @@ class PlayerClient:
 		self.user = username
 		self.OrderInfo=[]
 		self.OrderInfo=['ticketNumber','tick','volume','price','expirationTime']
+		self.ticketNumber=1
 		#run a loop to get user commands
 		self.CommandLoop()
 		
@@ -80,7 +81,7 @@ class PlayerClient:
 		if command_dict['request_type']=="buy" or command_dict['request_type']=="sell":
 			print len(msg_split),len(self.OrderInfo)
 			
-			if len(msg_split)-1 != len(self.OrderInfo):
+			if len(msg_split) != len(self.OrderInfo):
 				print "Too less or more information"
 			else:
 			#store the information of buy and sell order
@@ -88,8 +89,12 @@ class PlayerClient:
 				# Set expiration datetime
 				msg_split[-1] = float(msg_split[-1])+time.time()
 				# Set request values
-				for order, value in zip(self.OrderInfo, msg_split[1:]):
+				for order, value in zip(self.OrderInfo[1:], msg_split[1:]):
 					command_dict['data'][order]=value
+				command_dict['data']['ticketNumber']=self.ticketNumber
+				self.ticketNumber+=1
+			
+			print self.ticketNumber
 		#store the data of request type cancel		
 		elif command_dict['request_type']=="cancel":
 			if len(msg_split) != 2:
