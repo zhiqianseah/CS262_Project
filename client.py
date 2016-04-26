@@ -101,7 +101,8 @@ class PlayerClient:
 				print "Too less or more information"
 			else:
 				command_dict['data']={}
-				command_dict['data']['ticketNumber']=msg_split[1]
+				print int(msg_split[1])
+				command_dict['data']['ticketNumber']=int(msg_split[1])
 		# elif command_dict['request_type'] == 'pending':
 		# 	# A request to get the pending orders for the current user
 		# 	command_dict['data'] = {'username': }
