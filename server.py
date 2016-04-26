@@ -2,24 +2,36 @@ import socket
 import thread 		#for spawning new threads to handle clients
 import json			#for serializing data
 import sock_helper
+import time
+import threading 	#for locks
+import random
 
 class StockExchangeServer:
 
 	#initialize the Stock Exchange Server with a host/port
-	def __init__(self, host = "127.0.0.1", port = 40000, Num_Companies = 5, StartingPrice = 30):
+	def __init__(self, host = "127.0.0.1", port = 40000, Num_Companies = 5, StartingPrice = 30., UpdateFrequency = 5):
 
 		#Set up Server socket
 		sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 		sock.bind((host, port))
 		print "Server Socket initialized."
 
+		self.updatelock = threading.Lock()
 		self.account = {}
 		self.companies = {}
 		self.pending_orders = {}
+		self.demandsupply = {}  #used for updating company prices
+
 		#populate the companies with initial values
 		for x in range(Num_Companies):
 			self.companies['Company'+str(x)] = StartingPrice
 
+		#populate the demand supply as 0
+		for x in range(Num_Companies):
+			self.demandsupply['Company'+str(x)] = 0
+
+		#Start a new therad for updating prices
+		thread.start_new_thread( self.Price_Update_Thread, (UpdateFrequency,)  )
 
 		#Listen for connections from clients. 
 		#For each connection, spawn a new thread to handle  that client
@@ -34,6 +46,26 @@ class StockExchangeServer:
 			print "Server Ended."
     		sock.close()
 
+
+    #This thread will update company prices
+    #python dictionaries are thread safe, so we don't have to worry about reader writer locks
+	def Price_Update_Thread(self, frequency):
+		start = time.time()
+
+		while True:
+			for company in self.companies:
+				current_demandsupply = self.demandsupply[company]/50.
+				newprice = self.companies[company] + round(random.normalvariate(0+current_demandsupply, 1), 2)
+
+				#make sure that the price doesn't go below 0
+				self.companies[company] = max (newprice, 0.01) 
+
+				#Demand and supply degrade exponentially
+				self.demandsupply[company] = self.demandsupply[company]/2
+
+
+			#sleep the remaining time of an interval away
+			time.sleep(frequency - ((time.time() - start) % frequency))
 
  	#thread to handle an incoming client
  	def Client_Handling_Thread(self, client, addr):
@@ -121,6 +153,8 @@ class StockExchangeServer:
 										self.account[username]['position'][tick] += volume
 								else:
 										self.account[username]['position'][tick] = volume
+								#increase demand for this company
+								self.demandsupply[tick] += float(volume)
 								reply_dict['status'] = "Transaction succeeded"
 						else:
 								# Put the order on a queue
@@ -145,6 +179,8 @@ class StockExchangeServer:
 						if price <= self.companies[tick]:
 								self.account[username]['position'][tick] -= volume
 								self.account[username]['bank'] += self.companies[tick] * volume
+								#decrease demand for this company
+								self.demandsupply[tick] -= float(volume)
 								reply_dict['status'] = "Transaction succeeded"
 						else:
 								# Put the order on a queue

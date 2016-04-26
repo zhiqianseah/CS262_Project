@@ -46,6 +46,9 @@ class PlayerClient:
 
 				command_dict = self.Parse_Input(msg)
 
+				if command_dict is None:
+					continue
+
 				#Serialize the data
 				data_string = json.dumps(command_dict)
 				#print data_string
@@ -79,10 +82,11 @@ class PlayerClient:
 
 		#store the data of buy and sell
 		if command_dict['request_type']=="buy" or command_dict['request_type']=="sell":
-			#print len(msg_split),len(self.OrderInfo)
+			print len(msg_split),len(self.OrderInfo)
 			
 			if len(msg_split) != len(self.OrderInfo):
 				print "Too less or more information"
+				return None
 			else:
 			#store the information of buy and sell order
 				command_dict['data']={}				

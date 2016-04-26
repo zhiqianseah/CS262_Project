@@ -25,3 +25,8 @@ We first start with the easier commands, namely querying the price of companies 
 This populates a command dictionary (more details can be found on the project proposal page), which is serialized and sent to the server. The server deserialize the string into a
 dictionary, check the commands and relevant data, and respond accordingly with a response dictionary. After serializing and deserializing, the response dictionary is parsed by 
 Parse_Print_Reply function on the client side, and the data is printed in a user-friendly format
+
+
+
+Timer to update company prices
+Company prices are updated every X seconds. A separate thread handles the updating of prices. A timestamp is first marked as start. the prices of the companies are then locked and updated based on supply and demand. The remaining time of an interval (Interval - (end - start)) is slept away. Prices are updated based on a random sample from a normal(x,3) distribution where x is 1/10 of the current demand/supply of the stock. Demand and Supply degrade exponentially.
