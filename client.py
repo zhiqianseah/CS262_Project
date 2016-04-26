@@ -82,7 +82,7 @@ class PlayerClient:
 
 		#store the data of buy and sell
 		if command_dict['request_type']=="buy" or command_dict['request_type']=="sell":
-			print len(msg_split),len(self.OrderInfo)
+			#print len(msg_split),len(self.OrderInfo)
 			
 			if len(msg_split) != len(self.OrderInfo):
 				print "Too less or more information"
@@ -123,6 +123,9 @@ class PlayerClient:
 
 		if msg['response_type'] == "queryBalanceResponse":
 			print "Your Bank Balance is:", msg['data']['balance']
+			print "Your current stocks are:"
+			for tick in msg['data']['ticks']:
+				print tick,":",msg['data']['ticks'][tick]
 
 		if msg['response_type'] == "queryPriceResponse":
 			print "Prices of Companies:"

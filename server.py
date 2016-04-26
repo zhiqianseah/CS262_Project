@@ -9,7 +9,7 @@ import random
 class StockExchangeServer:
 
 	#initialize the Stock Exchange Server with a host/port
-	def __init__(self, host = "127.0.0.1", port = 40000, Num_Companies = 5, StartingPrice = 30., UpdateFrequency = 5):
+	def __init__(self, host = "127.0.0.1", port = 40000, Num_Companies = 5, StartingPrice = 30., UpdateFrequency = 5, DemandSupply_Const = 50.):
 
 		#Set up Server socket
 		sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -31,7 +31,7 @@ class StockExchangeServer:
 			self.demandsupply['Company'+str(x)] = 0
 
 		#Start a new therad for updating prices
-		thread.start_new_thread( self.Price_Update_Thread, (UpdateFrequency,)  )
+		thread.start_new_thread( self.Price_Update_Thread, (UpdateFrequency, DemandSupply_Const)  )
 
 		#Listen for connections from clients. 
 		#For each connection, spawn a new thread to handle  that client
@@ -49,12 +49,12 @@ class StockExchangeServer:
 
     #This thread will update company prices
     #python dictionaries are thread safe, so we don't have to worry about reader writer locks
-	def Price_Update_Thread(self, frequency):
+	def Price_Update_Thread(self, frequency, DemandSupply_Const):
 		start = time.time()
 
 		while True:
 			for company in self.companies:
-				current_demandsupply = self.demandsupply[company]/50.
+				current_demandsupply = self.demandsupply[company]/DemandSupply_Const
 				newprice = self.companies[company] + round(random.normalvariate(0+current_demandsupply, 1), 2)
 
 				#make sure that the price doesn't go below 0
@@ -120,7 +120,8 @@ class StockExchangeServer:
 		if msg_dict['request_type'] == "queryBalance":
 			reply_dict['response_type'] = "queryBalanceResponse"
 			reply_dict['data'] = {}
-			reply_dict['data']['balance'] = self.account[username]['bank']			
+			reply_dict['data']['balance'] = self.account[username]['bank']	
+			reply_dict['data']['ticks'] = self.account[username]['position']		
 			return reply_dict
 
 		elif msg_dict['request_type'] == "queryPrice":
