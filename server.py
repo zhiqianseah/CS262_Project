@@ -96,7 +96,7 @@ class StockExchangeServer:
 
 				#deserialize the data into a dictionary
 				msg_dict = json.loads(msg_raw) 
-				print addr, ' >> ', msg_dict
+				#print addr, ' >> ', msg_dict
 
 				#process the message
 				return_msg = self.Process_Message(msg_dict, username)

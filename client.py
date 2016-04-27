@@ -30,7 +30,7 @@ class PlayerClient:
 		#get reply from the server regarding the login
 		msg = sock_helper.recv_msg(self.sock)
 
-		print msg
+		#print msg
 
 		#while loop to get user input and set to the server
 		while True:
