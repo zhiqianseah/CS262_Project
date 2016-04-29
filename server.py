@@ -245,8 +245,8 @@ if __name__ == "__main__":
 	try:
 		if len(sys.argv) is 2:
 			StockExchangeServer(restart = sys.argv[1])
-
-		StockExchangeServer(restart = True)
+		else:
+			StockExchangeServer()
 	except Exception as e:
 		print e
 		print "Restarting Server"
