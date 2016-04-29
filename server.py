@@ -3,24 +3,33 @@ import thread 		#for spawning new threads to handle clients
 import json			#for serializing data
 import sock_helper
 import time
-import threading 	#for locks
 import random
+import sys			#for command line inputs
 
 class StockExchangeServer:
 
 	#initialize the Stock Exchange Server with a host/port
-	def __init__(self, host = "127.0.0.1", port = 40000, Num_Companies = 5, StartingPrice = 30., UpdateFrequency = 5, DemandSupply_Const = 50.):
+	def __init__(self, host = "127.0.0.1", port = 40000, Num_Companies = 5, StartingPrice = 30., UpdateFrequency = 5, DemandSupply_Const = 50., restart=False):
 
 		#Set up Server socket
 		sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 		sock.bind((host, port))
 		print "Server Socket initialized."
 
-		self.updatelock = threading.Lock()
-		self.account = {}
-		self.companies = {}
-		self.pending_orders = {}
-		self.demandsupply = {}  #used for updating company prices
+		if restart:
+			with open('./data/accounts.json', 'r') as f:
+				self.account = json.load(f)			
+			with open('./data/companies.json', 'r') as f:
+				self.companies = json.load(f)	
+			with open('./data/pending_orders.json', 'r') as f:
+				self.pending_orders = json.load(f)		
+			with open('./data/demandsupply.json', 'r') as f:
+				self.demandsupply = json.load(f)			
+		else:
+			self.account = {}
+			self.companies = {}
+			self.pending_orders = {}
+			self.demandsupply = {}  #used for updating company prices
 
 		#populate the companies with initial values
 		for x in range(Num_Companies):
@@ -63,9 +72,23 @@ class StockExchangeServer:
 				#Demand and supply degrade exponentially
 				self.demandsupply[company] = self.demandsupply[company]/2
 
+				self.SaveToDisk();
 
 			#sleep the remaining time of an interval away
 			time.sleep(frequency - ((time.time() - start) % frequency))
+
+
+	def SaveToDisk(self):
+		#save data to disk
+		with open('./data/accounts.json', 'w') as f:
+			 json.dump(self.account, f)		
+		with open('./data/companies.json', 'w') as f:
+			 json.dump(self.companies, f)		
+		with open('./data/pending_orders.json', 'w') as f:
+			 json.dump(self.pending_orders, f)		
+		with open('./data/demandsupply.json', 'w') as f:
+			 json.dump(self.demandsupply, f)		
+
 
  	#thread to handle an incoming client
  	def Client_Handling_Thread(self, client, addr):
@@ -146,24 +169,27 @@ class StockExchangeServer:
 				volume = int(msg_data['volume'])
 				price = float(msg_data['price'])
 				# Enough money in bank for the order
-				if self.companies[tick] * volume <= self.account[username]['bank']:
-					# Order can be executed
-						if price >= self.companies[tick]:
-								self.account[username]['bank'] -= self.companies[tick] * volume
-								if tick in self.account[username]['position']:
-										self.account[username]['position'][tick] += volume
-								else:
-										self.account[username]['position'][tick] = volume
-								#increase demand for this company
-								self.demandsupply[tick] += float(volume)
-								reply_dict['status'] = "Transaction succeeded"
-						else:
-								# Put the order on a queue
-								self.pending_orders[username].append(msg_dict)
-								reply_dict['status'] = "Pending Order"
-				# Don't have enough money to execute the order
+				if tick in self.companies:
+					if self.companies[tick] * volume <= self.account[username]['bank']:
+						# Order can be executed
+							if price >= self.companies[tick]:
+									self.account[username]['bank'] -= self.companies[tick] * volume
+									if tick in self.account[username]['position']:
+											self.account[username]['position'][tick] += volume
+									else:
+											self.account[username]['position'][tick] = volume
+									#increase demand for this company
+									self.demandsupply[tick] += float(volume)
+									reply_dict['status'] = "Transaction succeeded"
+							else:
+									# Put the order on a queue
+									self.pending_orders[username].append(msg_dict)
+									reply_dict['status'] = "Pending Order"
+					# Don't have enough money to execute the order
+					else:
+							reply_dict['status'] = "Not enough account balance"
 				else:
-						reply_dict['status'] = "Not enough account balance"
+					reply_dict['status'] = "Company doesn't exist."				
 				return reply_dict
 		elif msg_dict['request_type'] == "sell":
 				# Response to the buy request
@@ -174,22 +200,25 @@ class StockExchangeServer:
 				tick = msg_data['tick']
 				volume = int(msg_data['volume'])
 				price = float(msg_data['price'])
-				# Enough money in bank for the order
-				if volume <= self.account[username]['position'][tick]:
-					# Order can be executed
-						if price <= self.companies[tick]:
-								self.account[username]['position'][tick] -= volume
-								self.account[username]['bank'] += self.companies[tick] * volume
-								#decrease demand for this company
-								self.demandsupply[tick] -= float(volume)
-								reply_dict['status'] = "Transaction succeeded"
-						else:
-								# Put the order on a queue
-								self.pending_orders[username].append(msg_dict)
-								reply_dict['status'] = "Pending Order"
-				# Don't have enough money to execute the order
+				if tick in self.companies:				
+					# Enough money in bank for the order
+					if volume <= self.account[username]['position'][tick]:
+						# Order can be executed
+							if price <= self.companies[tick]:
+									self.account[username]['position'][tick] -= volume
+									self.account[username]['bank'] += self.companies[tick] * volume
+									#decrease demand for this company
+									self.demandsupply[tick] -= float(volume)
+									reply_dict['status'] = "Transaction succeeded"
+							else:
+									# Put the order on a queue
+									self.pending_orders[username].append(msg_dict)
+									reply_dict['status'] = "Pending Order"
+					# Don't have enough money to execute the order
+					else:
+							reply_dict['status'] = "Not enough shares to sell"
 				else:
-						reply_dict['status'] = "Not enough shares to sell"
+					reply_dict['status'] = "Company doesn't exist."							
 				return reply_dict
 
 		elif msg_dict['request_type'] == "cancel":
@@ -213,4 +242,12 @@ class StockExchangeServer:
 		return reply_dict
 
 if __name__ == "__main__":
-    StockExchangeServer()
+	try:
+		if len(sys.argv) is 2:
+			StockExchangeServer(restart = sys.argv[1])
+
+		StockExchangeServer(restart = True)
+	except Exception as e:
+		print e
+		print "Restarting Server"
+		StockExchangeServer(restart = True)    	

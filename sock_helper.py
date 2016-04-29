@@ -18,7 +18,7 @@ def send_msg(msg, client, log_f = None):
     if log_f:
         log_f.write(log_str)
 
-    print log_str
+    #print log_str
 
 def recvall(n, client):
     # Helper function to recv n bytes or return None if EOF is hit
