@@ -5,6 +5,8 @@ import sock_helper
 import time
 import random
 import sys			#for command line inputs
+import sqlite3		#for server failure
+from datetime import datetime
 
 class StockExchangeServer:
 
@@ -16,15 +18,17 @@ class StockExchangeServer:
 		sock.bind((host, port))
 		print "Server Socket initialized."
 
+
+
+
 		if restart:
-			with open('./data/accounts.json', 'r') as f:
-				self.account = json.load(f)			
-			with open('./data/companies.json', 'r') as f:
-				self.companies = json.load(f)	
-			with open('./data/pending_orders.json', 'r') as f:
-				self.pending_orders = json.load(f)		
-			with open('./data/demandsupply.json', 'r') as f:
-				self.demandsupply = json.load(f)			
+			conn = sqlite3.connect('./data/server_backup.db')
+			c = conn.cursor()		
+			for row in c.execute('''SELECT * from backup ORDER BY time DESC LIMIT 1;'''):	
+				self.account = json.loads(row[0])
+				self.companies = json.loads(row[1])
+				self.pending_orders = json.loads(row[2])
+				self.demandsupply = json.loads(row[3])			
 		else:
 			self.account = {}
 			self.companies = {}
@@ -40,7 +44,7 @@ class StockExchangeServer:
 			self.demandsupply['Company'+str(x)] = 0
 
 		#Start a new therad for updating prices
-		thread.start_new_thread( self.Price_Update_Thread, (UpdateFrequency, DemandSupply_Const)  )
+		thread.start_new_thread( self.Price_Update_Thread, (UpdateFrequency, DemandSupply_Const, restart)  )
 
 		#Listen for connections from clients. 
 		#For each connection, spawn a new thread to handle  that client
@@ -58,9 +62,15 @@ class StockExchangeServer:
 
     #This thread will update company prices
     #python dictionaries are thread safe, so we don't have to worry about reader writer locks
-	def Price_Update_Thread(self, frequency, DemandSupply_Const):
+	def Price_Update_Thread(self, frequency, DemandSupply_Const, restart):
 		start = time.time()
 
+		self.conn = sqlite3.connect('./data/server_backup.db')
+		self.c = self.conn.cursor()
+		if not restart:
+			self.c.execute('''DROP TABLE IF EXISTS backup''')
+			self.c.execute('''CREATE TABLE backup
+			             (account text, companies text, pending_orders text, demandsupply text, time timestamp)''')
 		while True:
 			for company in self.companies:
 				current_demandsupply = self.demandsupply[company]/DemandSupply_Const
@@ -79,15 +89,13 @@ class StockExchangeServer:
 
 
 	def SaveToDisk(self):
-		#save data to disk
-		with open('./data/accounts.json', 'w') as f:
-			 json.dump(self.account, f)		
-		with open('./data/companies.json', 'w') as f:
-			 json.dump(self.companies, f)		
-		with open('./data/pending_orders.json', 'w') as f:
-			 json.dump(self.pending_orders, f)		
-		with open('./data/demandsupply.json', 'w') as f:
-			 json.dump(self.demandsupply, f)		
+
+		self.c.execute('''INSERT INTO backup VALUES (?,?,?,?,?)''',(json.dumps(self.account),json.dumps(self.companies),
+			json.dumps(self.pending_orders),json.dumps(self.demandsupply),datetime.now()))
+
+		# Save the changes
+		self.conn.commit()
+
 
 
  	#thread to handle an incoming client
