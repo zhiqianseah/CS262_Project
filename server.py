@@ -83,8 +83,30 @@ class StockExchangeServer:
 				self.demandsupply[company] = self.demandsupply[company]/2
 
 				self.SaveToDisk();
-
+                        for account, account_pending_orders in self.pending_orders.iteritems():
+                                for apending_order in account_pending_orders:
+                                        apending_order_data = apending_order['data']
+                                        price =  float(apending_order_data['price'])
+                                        volume = int(apending_order_data['volume'])
+                                        tick = apending_order_data['tick']
+                                        if apending_order_data['expirationTime'] >= time.time():
+                                                if apending_order['request_type'] == 'buy':
+                                                            if  price > self.companies[tick] and self.companies[tick] * volume <= self.account[account]['bank']:
+                                                                    self.account[account]['bank'] -= self.companies[tick] * volume
+                                                                    if tick in self.account[account]['position']:
+							                    self.account[account]['position'][tick] += volume
+							            else:
+								            self.account[account]['position'][tick] = volume
+                                                                    apending_order_data['expirationTime'] = time.time()
+                                                if apending_order['request_type'] == 'sell':
+                                                            if price < self.companies[tick] and self.account[username]['position'][tick] >= volume:
+                                                                    self.account[account]['bank'] += self.companies[tick] * volume
+                                                                    if tick in self.account[account]['position']:
+							                    self.account[username]['position'][tick] -= volume
+                                                                    apending_order_data['expirationTime'] = time.time()
+                
 			#sleep the remaining time of an interval away
+                        print self.pending_orders
 			time.sleep(frequency - ((time.time() - start) % frequency))
 
 
@@ -102,24 +124,30 @@ class StockExchangeServer:
  	def Client_Handling_Thread(self, client, addr):
 
  		#the first message received by the user is his username to identify himself
-		username = sock_helper.recv_msg(client)
-		print addr, ' >> ', username
+		credential = sock_helper.recv_msg(client)
+		print addr, ' >> ', credential
+                username, password = credential.split(' ')
+                authorized = False
 
 		#if the stock exchange sees a new user, create a new account for him and give him 1000 dollars
 		#Reply the client with a welcome message
 		if username not in self.account:
 			self.account[username] = {}
 			self.account[username]['bank'] = 1000
+			self.account[username]['password'] = password
 			self.account[username]['position'] = {}
 			self.pending_orders[username] = []
 
 			sock_helper.send_msg("Welcome, new user!. We have created a new account for you.", client)
-	 	else:
+                        authorized = True
+                elif self.account[username]['password'] == password:
 			sock_helper.send_msg("Welcome Back, "+str(username)+".", client)
-
+                        authorized = True
+                else:
+			sock_helper.send_msg("Unauthorized",client)
 
  		#listen to the client messages and respond accordingly
- 		while True:
+ 		while True and authorized:
  			try:
 
  				#receive the data from the client
@@ -191,6 +219,7 @@ class StockExchangeServer:
 									reply_dict['status'] = "Transaction succeeded"
 							else:
 									# Put the order on a queue
+                                                                        print msg_dict
 									self.pending_orders[username].append(msg_dict)
 									reply_dict['status'] = "Pending Order"
 					# Don't have enough money to execute the order

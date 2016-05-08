@@ -2,16 +2,18 @@ import socket
 import json			#for serializing data
 import time
 import sock_helper
+import sys
 
 class PlayerClient:
 
 	#initialize the Player client with a host/port
-	def __init__(self, username = 'user1', host = "127.0.0.1", port = 40000):
+	def __init__(self, username = 'user1', password = 'password', host = "127.0.0.1", port = 40000):
 
 		#Set up Server socket
 		self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 		self.sock.connect((host, port))
 		self.user = username
+                self.password = password
 		self.OrderInfo=[]
 		self.OrderInfo=['ticketNumber','tick','volume','price','expirationTime']
 		self.ticketNumber=1
@@ -25,15 +27,19 @@ class PlayerClient:
 	def CommandLoop(self):
 
 		#the first message to the server is the username to identify the user
-		sock_helper.send_msg(self.user, self.sock)
+                credential = self.user + ' ' + self.password
+                print credential
+		sock_helper.send_msg(credential, self.sock)
 
 		#get reply from the server regarding the login
 		msg = sock_helper.recv_msg(self.sock)
 
-		print msg
+                if msg == 'Unauthorized':
+                        print "Login failed."
+                        sys.exit(1)
 
 		#while loop to get user input and set to the server
-		while True:
+		while True and msg != 'Unauthorized':
 
 			#get user command-line input
 			msg = raw_input('Enter Command: ')
@@ -154,8 +160,11 @@ class PlayerClient:
 		
 		if msg['response_type']=="cancelResponse":
 			print "Cancel Status", msg['status']
-		
+
+input_username = sys.argv[1]
+input_password = sys.argv[2]
+
 if __name__ == "__main__":
-    client = PlayerClient(username = 'user1')
+    client = PlayerClient(username = input_username, password = input_password)
     
 
