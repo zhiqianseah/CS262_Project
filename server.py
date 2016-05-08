@@ -106,7 +106,6 @@ class StockExchangeServer:
                                                                     apending_order_data['expirationTime'] = time.time()
                 
 			#sleep the remaining time of an interval away
-                        print self.pending_orders
 			time.sleep(frequency - ((time.time() - start) % frequency))
 
 
@@ -127,6 +126,10 @@ class StockExchangeServer:
 		credential = sock_helper.recv_msg(client)
 		print addr, ' >> ', credential
                 username, password = credential.split(' ')
+                pc_player = False
+                if username.startswith('pc_'):
+                        pc_player = True
+                        longPosition = True                        
                 authorized = False
 
 		#if the stock exchange sees a new user, create a new account for him and give him 1000 dollars
@@ -147,7 +150,7 @@ class StockExchangeServer:
 			sock_helper.send_msg("Unauthorized",client)
 
  		#listen to the client messages and respond accordingly
- 		while True and authorized:
+ 		while authorized and not pc_player:
  			try:
 
  				#receive the data from the client
@@ -168,6 +171,35 @@ class StockExchangeServer:
 	 			print "Exception: ", e
 	 			print "Connection Broken from:", addr
 	 			break
+
+                while authorized and pc_player:
+                        if longPosition:
+                                current_holding, current_price = 'Company', 999
+                                for tick in self.companies:
+                                        if self.companies[tick] < current_price:
+                                                current_holding, current_price = tick, self.companies[tick]
+                                max_share = int(self.account[username]['bank'] / current_price)
+                                self.account[username]['bank'] -= max_share * current_price
+                                if current_holding not in self.account[username]['position']:
+                                        self.account[username]['position'][current_holding] = max_share
+                                else:
+                                        self.account[username]['position'][current_holding] += max_share
+                                        
+                                longPosition = False
+                        if not longPosition:
+                                if self.companies[current_holding] > current_price:
+                                        self.account[username]['bank'] += self.account[username]['position'][current_holding] *  self.companies[current_holding]
+                                        self.account[username]['position'][current_holding] = 0
+                                        longPosition = True
+                        reply_dict = {}
+                        reply_dict['response_type'] = "queryBalanceResponse"
+			reply_dict['data'] = {}
+			reply_dict['data']['balance'] = self.account[username]['bank']	
+			reply_dict['data']['ticks'] = self.account[username]['position']
+                        data_string = json.dumps(reply_dict)
+			#send an acknowledgement back to the server
+			sock_helper.send_msg(data_string, client)
+                        time.sleep(20)
 
 
 	#This function process an incoming command dictionary from the client, and process it accordingly

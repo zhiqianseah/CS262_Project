@@ -37,9 +37,10 @@ class PlayerClient:
                 if msg == 'Unauthorized':
                         print "Login failed."
                         sys.exit(1)
+                pc_player = self.user.startswith('pc_')
 
 		#while loop to get user input and set to the server
-		while True and msg != 'Unauthorized':
+		while not pc_player and msg != 'Unauthorized':
 
 			#get user command-line input
 			msg = raw_input('Enter Command: ')
@@ -73,7 +74,13 @@ class PlayerClient:
 				print "Connection Broken. Quitting program"
 				self.sock.close()
 				break
-	
+
+	        while pc_player and msg != 'Unauthorized':
+                            reply_raw = sock_helper.recv_msg(self.sock)
+
+			    msg = json.loads(reply_raw) 
+			    self.Parse_Print_Reply(msg)
+                            time.sleep(10)
 	
 	
 	#this function parse the command line input string from the user and populates a command dictionary accordingly
