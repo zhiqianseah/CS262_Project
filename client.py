@@ -5,17 +5,36 @@ import sock_helper
 import sys
 
 class PlayerClient:
-
+	"""This class realize the function of player as a client in 
+	the distributed system. The member function 'CommandLoop' can be 
+	accessed remotely. The member function 'Parse_Input' and 'Parse_Print_Reply'
+	are called by 'CommandLoop' to generate the data structure to be sent 
+	and process the message received from server.
+	"""
+	
 	#initialize the Player client with a host/port
 	def __init__(self, username = 'user1', password = 'password', host = "127.0.0.1", port = 40000):
-
+		
+		"""__init__ method is to initialize the player client with a host/port
+		The initialization includes set up the server socket, the password of this 
+		account and the elements of information in an standard order.
+		
+		Args:
+			username(string): specify the user name
+			password(string):specify the password to log in
+			host(string)
+			host(const)
+		"""
 		#Set up Server socket
 		self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 		self.sock.connect((host, port))
+		# initialize the username and password of the user
 		self.user = username
                 self.password = password
+		#Initialize the keys in the order information dictionary
 		self.OrderInfo=[]
 		self.OrderInfo=['ticketNumber','tick','volume','price','expirationTime']
+		#Initialize the first ticketNumber to be 1
 		self.ticketNumber=1
 		#run a loop to get user commands
 		self.CommandLoop()
@@ -25,7 +44,16 @@ class PlayerClient:
 		
 	
 	def CommandLoop(self):
-
+		"""method CommandLoop is to read the input from command line, process the 
+		string into dictionaries and send the messages to server. It also keeps receiving
+		message from server side, parsing the input and print the information.
+		
+		The messaging protocol in the system is hand crafted and 
+		the sending and receiving are through the json serialization and deserialization
+		
+		This member function handle pc players:
+		"""
+		
 		#the first message to the server is the username to identify the user
                 credential = self.user + ' ' + self.password
                 print credential
@@ -50,9 +78,9 @@ class PlayerClient:
 				break
 
 			try:
-
+				#parse the input from command line into dictionary to be sent
 				command_dict = self.Parse_Input(msg)
-
+				# continue if the command is empty
 				if command_dict is None:
 					continue
 
@@ -65,19 +93,20 @@ class PlayerClient:
 
 				#get reply from the server and print it
 				reply_raw = sock_helper.recv_msg(self.sock)
-
+				#deserialize the data
 				msg = json.loads(reply_raw) 
+				#parse and print the reply
 				self.Parse_Print_Reply(msg)
-
+			#When error exists, an exception will be thrown and the error message will be print
 			except Exception as e:
 				print "Exception:", e
 				print "Connection Broken. Quitting program"
 				self.sock.close()
 				break
-
+			#When the pc_player is un
 	        while pc_player and msg != 'Unauthorized':
                             reply_raw = sock_helper.recv_msg(self.sock)
-
+		
 			    msg = json.loads(reply_raw) 
 			    self.Parse_Print_Reply(msg)
                             time.sleep(10)
@@ -85,6 +114,15 @@ class PlayerClient:
 	
 	#this function parse the command line input string from the user and populates a command dictionary accordingly
 	def Parse_Input(self, msg):
+		"""Parse_Input is to parse the message got from command line into the dictionary that
+		can be sent to the server side. The  dictionary is the command_dict where:
+		key='request_type' and value=the data structure which is also a dictionary.
+		
+		Args:
+			msg(string):
+		Return:
+			command_dict(dictionary)
+		"""
 		command_dict = {}
 
 		#split the message based on ,
@@ -129,23 +167,36 @@ class PlayerClient:
 
 	#This function parse the reply dictionary from the server, and print the relevant information
 	def Parse_Print_Reply(self, msg):
-
+		"""Parse_Print_Reply method is called by Command_Loop. It parse the message 
+		received from the server side print the corresponding information.
+		
+		Args:
+			msg(dictionary): received dictionary from server
+								key=response_type and value= corresponding data structure
+		Print the corresponding information
+		
+		"""
 		#parse the different type of response from the server
+		
+		#if the response type is invalide ,print the error message
 		if msg['response_type'] == "invalidCommand":
 			print "Server received an invalid command."
-
+		# parse response of query balance
 		if msg['response_type'] == "queryBalanceResponse":
+			#print the current balance and current stocks
 			print "Your Bank Balance is:", msg['data']['balance']
 			print "Your current stocks are:"
 			for tick in msg['data']['ticks']:
 				print tick,":",msg['data']['ticks'][tick]
-
+		#parse the response of query price
 		if msg['response_type'] == "queryPriceResponse":
+		#print the price of each company
 			print "Prices of Companies:"
 			for company in msg['data']:
 				print company + ":", msg['data'][company]
-
+		#parse the response of query pending orders
 		if msg['response_type'] == "queryPendingOrderResponse":
+			#print the pending order information
 			print '''Number	|	Type	|	Company	|	Volume	|	Price	|	Expiration	|'''
 			print '-------------------------------------------------------------------------------------------------'
 
@@ -161,10 +212,10 @@ class PlayerClient:
 		#print buy status
 		if msg['response_type']=="buyResponse":
 			print "Buy Status", msg['status']
-		
+		# print sell status
 		if msg['response_type']=="sellResponse":
 			print "Sell Status",msg['status']
-		
+		#print cancel status
 		if msg['response_type']=="cancelResponse":
 			print "Cancel Status", msg['status']
 
