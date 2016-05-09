@@ -9,27 +9,67 @@ import sqlite3		#for server failure
 from datetime import datetime
 
 class StockExchangeServer:
+	"""
+	@author Thomas Seah, Victor Lei, Chenchen Zhang, Yaoguang Jia
+	@version May 8, 2016
+	This the class realize the function of Stock Exchange Server
+	The server has the functions:
+		a. keep receive request message from aritificial or pc players
+		and generate the response message. 
+		b. update the bank account and stock information of the client when new trade happens
+		c. has a thread to do the price update
+		d. During the operation, server keep saving the data for the server recovary
+	
+	Member functure:
+		__int__: Initialize the stock exchage server, it can handle server restart
+		Price_Update_Thread: start a new thread to update price according to demand supply status
+		Client_Handling_Thread: start a thread to handle new coming client; it can handle both artificial
+		                        player and pc player
+		Process_Message: Process the message from client, update the data structure of the corresponding client
+						 and generate the response message
+		SaveToDisk: save all information on disk for server recovary
+		
+	"""
 
 	#initialize the Stock Exchange Server with a host/port
 	def __init__(self, host = "127.0.0.1", port = 40000, Num_Companies = 5, StartingPrice = 30., UpdateFrequency = 5, DemandSupply_Const = 50., restart=False):
-
+		"""
+		The function __init__ is to initialize the stock exchange server with a host/port
+		
+		When server starts, it first determine whether it is starting normally or restarts from failure.
+		If it starts normally, the function initialize the dictionary for the data including account,
+		companies, pending_orders and demandsupply; if it restarts from failure, the function reload data from disk
+		It keeps listen new coming clients and starts new threads to hand the new client.
+		
+		param:
+			host(string):initialize the IP of the host
+			port(const):initialize the port number
+			Num_Companies(int): initialize the number of companies
+			startPrice(float): initialize the start price
+			UpdateFrequency(int): the frequency of price update
+			DemandSupply_const(float): the const used in the demand supply relationship for price update
+			restart(bool): determine whether the server is restarting from failure
+		"""
+		
+		
 		#Set up Server socket
 		sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 		sock.bind((host, port))
 		print "Server Socket initialized."
 
-
-
-
+		#determin whether the server is restarting
 		if restart:
+			#if is restarting, connect to data base
 			conn = sqlite3.connect('./data/server_backup.db')
-			c = conn.cursor()		
+			c = conn.cursor()	
+			# load data from data base
 			for row in c.execute('''SELECT * from backup ORDER BY time DESC LIMIT 1;'''):	
 				self.account = json.loads(row[0])
 				self.companies = json.loads(row[1])
 				self.pending_orders = json.loads(row[2])
 				self.demandsupply = json.loads(row[3])			
 		else:
+			# if is not restarting, just initialize the data structure
 			self.account = {}
 			self.companies = {}
 			self.pending_orders = {}
@@ -53,6 +93,7 @@ class StockExchangeServer:
 				sock.listen(1)
 				client, addr = sock.accept()     # Establish connection with client.
 				print 'Got connection from', addr	
+				# start new thread to handle new client
 				thread.start_new_thread( self.Client_Handling_Thread, (client, addr ) )
 
 		except KeyboardInterrupt:
@@ -63,6 +104,9 @@ class StockExchangeServer:
     #This thread will update company prices
     #python dictionaries are thread safe, so we don't have to worry about reader writer locks
 	def Price_Update_Thread(self, frequency, DemandSupply_Const, restart):
+		"""
+		the method Price_Update_Thread 
+		"""
 		start = time.time()
 
 		self.conn = sqlite3.connect('./data/server_backup.db')

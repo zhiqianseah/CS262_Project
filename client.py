@@ -127,7 +127,12 @@ class PlayerClient:
 		can be sent to the server side. The  dictionary is the command_dict where:
 		key='request_type' and value=the data structure which is also a dictionary.
 		
-		Args:
+		For example when request_type=buy, then the data structure will also be a dictionary
+		where the key are the elements in OrderInfo=['ticketNumber','tick','volume','price','expirationTime']
+		and the value are their corresponding values.
+		
+		
+		param:
 			msg(string):
 		Return:
 			command_dict(dictionary)
@@ -181,7 +186,7 @@ class PlayerClient:
 		"""Parse_Print_Reply method is called by Command_Loop. It parse the message 
 		received from the server side print the corresponding information.
 		
-		Args:
+		param:
 			msg(dictionary): received dictionary from server
 							 key=response_type and value= corresponding data structure
 								
