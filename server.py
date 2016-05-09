@@ -105,19 +105,39 @@ class StockExchangeServer:
     #python dictionaries are thread safe, so we don't have to worry about reader writer locks
 	def Price_Update_Thread(self, frequency, DemandSupply_Const, restart):
 		"""
-		the method Price_Update_Thread 
+		the method Price_Update_Thread is to update the price based on demand supply relationship;
+		
+		the new price equals the current price plus a Gaussian variable whose mean is the the
+		current demand supply variable and variance is 1.
+		
+		at the same time, when price is updated, it examine the pending order queue if there is buy or sell 
+		pending order whose price is acceptable under the updated price condition. 
+		If there is server will process them in this method.
+		
+		param:
+			frequency(int): the parameter to control the frequency of updating price
+			DemandSupply_Const: the const to control the current demand supply variable
+			restart(bool): the variable that flag if the server is restarting, if it is not restarting, then drop the existing table
+			               create new backup table
+		
 		"""
+		# record the start time
 		start = time.time()
-
+		# construct connection to a data base
 		self.conn = sqlite3.connect('./data/server_backup.db')
+		# create a cursor sot that can excute the operation in SQL
 		self.c = self.conn.cursor()
+		# if the server is not restarting, drop the existing backup and create a new one
 		if not restart:
 			self.c.execute('''DROP TABLE IF EXISTS backup''')
 			self.c.execute('''CREATE TABLE backup
 			             (account text, companies text, pending_orders text, demandsupply text, time timestamp)''')
+		# run the loop to update the price and process relevant pending order				 
 		while True:
 			for company in self.companies:
+				# generate current demand supply variable
 				current_demandsupply = self.demandsupply[company]/DemandSupply_Const
+				# generate the new price to be the current price plus a Gaussian vaviable decided by demand supply variable
 				newprice = self.companies[company] + round(random.normalvariate(0+current_demandsupply, 1), 2)
 
 				#make sure that the price doesn't go below 0
@@ -125,25 +145,27 @@ class StockExchangeServer:
 
 				#Demand and supply degrade exponentially
 				self.demandsupply[company] = self.demandsupply[company]/2
-
+				# save the update to disk 
 				self.SaveToDisk();
-                        for account, account_pending_orders in self.pending_orders.iteritems():
-                                for apending_order in account_pending_orders:
+                        for account, account_pending_orders in self.pending_orders.iteritems(): # process the relavent pending order
+                                for apending_order in account_pending_orders:          # dequeue the pending order
                                         apending_order_data = apending_order['data']
-                                        price =  float(apending_order_data['price'])
-                                        volume = int(apending_order_data['volume'])
-                                        tick = apending_order_data['tick']
-                                        if apending_order_data['expirationTime'] >= time.time():
-                                                if apending_order['request_type'] == 'buy':
+                                        price =  float(apending_order_data['price'])   # take the price
+                                        volume = int(apending_order_data['volume'])    # take volume information
+                                        tick = apending_order_data['tick']             #take the tick information
+                                        if apending_order_data['expirationTime'] >= time.time():  # when the order has not expired
+                                                if apending_order['request_type'] == 'buy':       # determine the order type, 'buy' or 'sell'
+															# if it is buy order, determine whether the price is acceptable after the price updating
+															# and if the client has enough balance
                                                             if  price > self.companies[tick] and self.companies[tick] * volume <= self.account[account]['bank']:
-                                                                    self.account[account]['bank'] -= self.companies[tick] * volume
-                                                                    if tick in self.account[account]['position']:
-							                    self.account[account]['position'][tick] += volume
+                                                                    self.account[account]['bank'] -= self.companies[tick] * volume # process the order and substract balance
+                                                                    if tick in self.account[account]['position']: # if client has bought the tick before
+							                    self.account[account]['position'][tick] += volume                 # just add volume
 							            else:
-								            self.account[account]['position'][tick] = volume
-                                                                    apending_order_data['expirationTime'] = time.time()
-                                                if apending_order['request_type'] == 'sell':
-                                                            if price < self.companies[tick] and self.account[username]['position'][tick] >= volume:
+								            self.account[account]['position'][tick] = volume                      # if not create new tick
+                                                                    apending_order_data['expirationTime'] = time.time()  # set the expiration time as current
+                                                if apending_order['request_type'] == 'sell':                      # when the request type is sell
+                                                            if price < self.companies[tick] and self.account[username]['position'][tick] >= volume: 
                                                                     self.account[account]['bank'] += self.companies[tick] * volume
                                                                     if tick in self.account[account]['position']:
 							                    self.account[username]['position'][tick] -= volume
