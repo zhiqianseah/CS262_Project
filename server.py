@@ -31,7 +31,7 @@ class StockExchangeServer:
 		
 	"""
 
-	#initialize the Stock Exchange Server with a host/port
+	
 	def __init__(self, host = "127.0.0.1", port = 40000, Num_Companies = 5, StartingPrice = 30., UpdateFrequency = 5, DemandSupply_Const = 50., restart=False):
 		"""
 		The function __init__ is to initialize the stock exchange server with a host/port
@@ -101,8 +101,7 @@ class StockExchangeServer:
     		sock.close()
 
 
-    #This thread will update company prices
-    #python dictionaries are thread safe, so we don't have to worry about reader writer locks
+    
 	def Price_Update_Thread(self, frequency, DemandSupply_Const, restart):
 		"""
 		the method Price_Update_Thread is to update the price based on demand supply relationship;
@@ -155,8 +154,8 @@ class StockExchangeServer:
                                         tick = apending_order_data['tick']             #take the tick information
                                         if apending_order_data['expirationTime'] >= time.time():  # when the order has not expired
                                                 if apending_order['request_type'] == 'buy':       # determine the order type, 'buy' or 'sell'
-															# if it is buy order, determine whether the price is acceptable after the price updating
-															# and if the client has enough balance
+												# if it is buy order, determine whether the price is acceptable after the price updating
+												# and if the client has enough balance
                                                             if  price > self.companies[tick] and self.companies[tick] * volume <= self.account[account]['bank']:
                                                                     self.account[account]['bank'] -= self.companies[tick] * volume # process the order and substract balance
                                                                     if tick in self.account[account]['position']: # if client has bought the tick before
@@ -176,7 +175,10 @@ class StockExchangeServer:
 
 
 	def SaveToDisk(self):
-
+		"""
+		method SaveToDisk is to  save the current information to the backup database
+		"""
+		# excute the SQL command to insert the information to the existing backup database
 		self.c.execute('''INSERT INTO backup VALUES (?,?,?,?,?)''',(json.dumps(self.account),json.dumps(self.companies),
 			json.dumps(self.pending_orders),json.dumps(self.demandsupply),datetime.now()))
 
@@ -185,16 +187,28 @@ class StockExchangeServer:
 
 
 
- 	#thread to handle an incoming client
+ 	
  	def Client_Handling_Thread(self, client, addr):
+ 		"""
+ 		method Client_Handling_Thread is to start new thread to handle incoming client;
+ 		the server first identify the user by the credential information, it can handle either pc_player or artificial player;
+ 		after identifying the new client, server create new account  and send him welcome messages;
+ 		during the operation, server keeps listening the messages from client and response accordingly
+
+ 		param:
+ 			client: the new incoming client
+ 			addr: the address of the client
+
+ 		"""
 
  		#the first message received by the user is his username to identify himself
 		credential = sock_helper.recv_msg(client)
+		#print addresss and login information
 		print addr, ' >> ', credential
                 username, password = credential.split(' ')
                 pc_player = False
-                if username.startswith('pc_'):
-                        pc_player = True
+                if username.startswith('pc_'): # determin whether the client is a pc_player or not
+                        pc_player = True       # set the flag of pc_player and longPosition
                         longPosition = True                        
                 authorized = False
 
@@ -202,15 +216,15 @@ class StockExchangeServer:
 		#Reply the client with a welcome message
 		if username not in self.account:
 			self.account[username] = {}
-			self.account[username]['bank'] = 1000
-			self.account[username]['password'] = password
-			self.account[username]['position'] = {}
-			self.pending_orders[username] = []
-
+			self.account[username]['bank'] = 1000         # initialize bank account
+			self.account[username]['password'] = password # store password
+			self.account[username]['position'] = {}       # initialize the position of the client
+			self.pending_orders[username] = []            # set upt the queue of pending order for the client
+            # sent the welcome message to client
 			sock_helper.send_msg("Welcome, new user!. We have created a new account for you.", client)
-                        authorized = True
-                elif self.account[username]['password'] == password:
-			sock_helper.send_msg("Welcome Back, "+str(username)+".", client)
+                        authorized = True   # set up the authorization flag to be true
+                elif self.account[username]['password'] == password:  # if it is re-login determine if the password is correct
+			sock_helper.send_msg("Welcome Back, "+str(username)+".", client)   # authorize the re-login and send message
                         authorized = True
                 else:
 			sock_helper.send_msg("Unauthorized",client)
@@ -232,12 +246,12 @@ class StockExchangeServer:
 				data_string = json.dumps(return_msg)
 				#send an acknowledgement back to the server
 				sock_helper.send_msg(data_string, client)
-
+            # throws exception when error occurs and print the address where the error occurs
 	 		except Exception as e:
 	 			print "Exception: ", e
 	 			print "Connection Broken from:", addr
 	 			break
-
+                # for authorized pc_player, specify the behavior of the player
                 while authorized and pc_player:
                         if longPosition:
                                 current_holding, current_price = 'Company', 999
@@ -268,10 +282,11 @@ class StockExchangeServer:
                         time.sleep(20)
 
 
-	#This function process an incoming command dictionary from the client, and process it accordingly
-	#It will reply with a response dictionary that will be sent back to the user
+	
 	def Process_Message(self, msg_dict, username):
 
+        
+        
 		reply_dict = {}
 
 		if msg_dict['request_type'] == "queryBalance":
