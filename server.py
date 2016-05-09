@@ -146,24 +146,37 @@ class StockExchangeServer:
 				self.demandsupply[company] = self.demandsupply[company]/2
 				# save the update to disk 
 				self.SaveToDisk();
-                        for account, account_pending_orders in self.pending_orders.iteritems(): # process the relavent pending order
-                                for apending_order in account_pending_orders:          # dequeue the pending order
+				# process the relavent pending order
+                        for account, account_pending_orders in self.pending_orders.iteritems(): 
+                        	# dequeue the pending order
+                                for apending_order in account_pending_orders:          
                                         apending_order_data = apending_order['data']
-                                        price =  float(apending_order_data['price'])   # take the price
-                                        volume = int(apending_order_data['volume'])    # take volume information
-                                        tick = apending_order_data['tick']             #take the tick information
-                                        if apending_order_data['expirationTime'] >= time.time():  # when the order has not expired
-                                                if apending_order['request_type'] == 'buy':       # determine the order type, 'buy' or 'sell'
-												# if it is buy order, determine whether the price is acceptable after the price updating
-												# and if the client has enough balance
+                                        # take the price
+                                        price =  float(apending_order_data['price'])
+                                        # take volume information   
+                                        volume = int(apending_order_data['volume'])
+                                        # take the tick information    
+                                        tick = apending_order_data['tick']
+                                        # when the order has not expired             
+                                        if apending_order_data['expirationTime'] >= time.time():
+                                        # determine the order type, 'buy' or 'sell'  
+                                                if apending_order['request_type'] == 'buy':       
+									# if it is buy order, determine whether the price is acceptable after the price updating
+									# and if the client has enough balance
                                                             if  price > self.companies[tick] and self.companies[tick] * volume <= self.account[account]['bank']:
-                                                                    self.account[account]['bank'] -= self.companies[tick] * volume # process the order and substract balance
-                                                                    if tick in self.account[account]['position']: # if client has bought the tick before
-							                    self.account[account]['position'][tick] += volume                 # just add volume
+                                                            	# process the order and substract balance
+                                                                    self.account[account]['bank'] -= self.companies[tick] * volume 
+                                                                    # if client has bought the tick before
+                                                                    if tick in self.account[account]['position']: 
+                                                                    	# just add volume
+							                    self.account[account]['position'][tick] += volume                 
 							            else:
-								            self.account[account]['position'][tick] = volume                      # if not create new tick
-                                                                    apending_order_data['expirationTime'] = time.time()  # set the expiration time as current
-                                                if apending_order['request_type'] == 'sell':                      # when the request type is sell
+							            	# if not create new tick
+								            self.account[account]['position'][tick] = volume
+								            # set the expiration time as current                      
+                                                                    apending_order_data['expirationTime'] = time.time()  
+                                                                    # when the request type is sell
+                                                if apending_order['request_type'] == 'sell':                      
                                                             if price < self.companies[tick] and self.account[username]['position'][tick] >= volume: 
                                                                     self.account[account]['bank'] += self.companies[tick] * volume
                                                                     if tick in self.account[account]['position']:
@@ -208,8 +221,8 @@ class StockExchangeServer:
                 username, password = credential.split(' ')
                 pc_player = False
                 if username.startswith('pc_'): # determin whether the client is a pc_player or not
-                        pc_player = True       # set the flag of pc_player and longPosition
-                        longPosition = True                        
+                        pc_player = True       # set the flag of pc_player
+                        longPosition = True    # longPosition is the varialbe relevant to pc_player trading behavior                    
                 authorized = False
 
 		#if the stock exchange sees a new user, create a new account for him and give him 1000 dollars
@@ -253,25 +266,32 @@ class StockExchangeServer:
 	 			break
                 # for authorized pc_player, specify the behavior of the player
                 while authorized and pc_player:
+                	# if the longPosition=True, buy the cheapest stock
                         if longPosition:
                                 current_holding, current_price = 'Company', 999
                                 for tick in self.companies:
+                                	# buy the cheapest stock
                                         if self.companies[tick] < current_price:
                                                 current_holding, current_price = tick, self.companies[tick]
+                                #buy with all balance available
                                 max_share = int(self.account[username]['bank'] / current_price)
                                 self.account[username]['bank'] -= max_share * current_price
+                                # add shares of the bought stocks
                                 if current_holding not in self.account[username]['position']:
                                         self.account[username]['position'][current_holding] = max_share
                                 else:
                                         self.account[username]['position'][current_holding] += max_share
-                                        
+                                # set the longPosition to be False        
                                 longPosition = False
+                        # when longPostion=False use another behavior
                         if not longPosition:
+                        	# short stocks if the prices goes up
                                 if self.companies[current_holding] > current_price:
                                         self.account[username]['bank'] += self.account[username]['position'][current_holding] *  self.companies[current_holding]
                                         self.account[username]['position'][current_holding] = 0
                                         longPosition = True
                         reply_dict = {}
+                        # reply to server the balance and holding stocks of the pc_player
                         reply_dict['response_type'] = "queryBalanceResponse"
 			reply_dict['data'] = {}
 			reply_dict['data']['balance'] = self.account[username]['bank']	
@@ -284,30 +304,54 @@ class StockExchangeServer:
 
 	
 	def Process_Message(self, msg_dict, username):
+		"""
+        method Process_Message is to process the message received from client and generate response message accordingly
+        it is called by Client_Handling_Thread
+        the function first decide the request type and then generate the corresponding messages:
+        request_type="queryBalance": response_type="queryBalanceResponse" data={balance:(),tick:()}
+        request_type="queryPrice": response_type="queryPriceResponse" data={balance:(),tick:()}
+        request_type="queryPendingOrder": response_type="queryPendingOrderResponse" 
+        request_type="buy" update the ticket number, volume, tick, and bank balance for the client, response_type="buyResponse"
+        request_type="sell" update the ticket number, volume, tick, and bank balance for the client, response_type="sellResponse"
+        resquest_type="cancel" cancel the specified pending order, response_typer="cancelResponse"
 
-        
-        
+        param:
+        	msg_dict(dictionary): request message from client
+        	username(string): specify the client we are processing
+        return:
+        	reply_dict(dictionary): the reply message that  
+		"""
+
+
+        # initialize the reply_dict
 		reply_dict = {}
-
+        # if the request type is queryBalance
 		if msg_dict['request_type'] == "queryBalance":
+			# specify the response type 
 			reply_dict['response_type'] = "queryBalanceResponse"
 			reply_dict['data'] = {}
+			# specify the bank account and the volume of ticks it owns
 			reply_dict['data']['balance'] = self.account[username]['bank']	
 			reply_dict['data']['ticks'] = self.account[username]['position']		
 			return reply_dict
-
+        # if the request type is query Price
 		elif msg_dict['request_type'] == "queryPrice":
+			# specify the response type
 			reply_dict['response_type'] = "queryPriceResponse"
-			reply_dict['data'] = {}		
+			reply_dict['data'] = {}	
+			# the data in reply dict are the companies and their price	
 			for company in self.companies:
 				reply_dict['data'][company] = self.companies[company]
 			return reply_dict
+		# if the requestion type is the pending oder
 		elif msg_dict['request_type'] == 'queryPendingOrder':
-			#TODO
+			# specify the response type
 			reply_dict['response_type'] = 'queryPendingOrderResponse'
+			# the data in reply dict is the pending order of the requesting client
 			reply_dict['data'] = self.pending_orders[username]
 
 			return reply_dict
+		# process the buy request
 		elif msg_dict['request_type'] == "buy":
 				# Response to the buy request
 				reply_dict['response_type'] = "buyResponse"
@@ -322,7 +366,9 @@ class StockExchangeServer:
 					if self.companies[tick] * volume <= self.account[username]['bank']:
 						# Order can be executed
 							if price >= self.companies[tick]:
+								#substract balance from the bank account
 									self.account[username]['bank'] -= self.companies[tick] * volume
+									# create a new tick or add volume to existing ticks
 									if tick in self.account[username]['position']:
 											self.account[username]['position'][tick] += volume
 									else:
@@ -355,7 +401,9 @@ class StockExchangeServer:
 					if volume <= self.account[username]['position'][tick]:
 						# Order can be executed
 							if price <= self.companies[tick]:
+								#substract volume from existing tick
 									self.account[username]['position'][tick] -= volume
+									# add balance to bank account
 									self.account[username]['bank'] += self.companies[tick] * volume
 									#decrease demand for this company
 									self.demandsupply[tick] -= float(volume)
@@ -382,21 +430,25 @@ class StockExchangeServer:
 				for i in range(len(self.pending_orders[username])):
 						if self.pending_orders[username][i]['data']['ticketNumber'] == ticketNumber:
 								del self.pending_orders[username][i]
-								print 'Order cancelled'
-								reply_dict['status'] = 'Order cancelled'
+								print 'Order cancelled' 
+								reply_dict['status'] = 'Order cancelled' # reply the ceancel status
 				return reply_dict
 
 		#opcode not recognized. return invalid command
 		reply_dict['response_type']= "invalidCommand"
 		reply_dict['data'] = {}
 		return reply_dict
-
+# run the client with the param restart
+# if no restart flag, just regard it as normal start
 if __name__ == "__main__":
 	try:
+		# restart the server
 		if len(sys.argv) is 2:
 			StockExchangeServer(restart = sys.argv[1])
+		# normally start the server
 		else:
 			StockExchangeServer()
+	# when error occures the server can restart		
 	except Exception as e:
 		print e
 		print "Restarting Server"
