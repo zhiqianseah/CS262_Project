@@ -1,5 +1,5 @@
 #CS 262 Project
-## Distributed System for Stock Marcket Simulation
+## Distributed System for Stock Market Simulation
 The project is to build a distributed system for stock market simulation. The distributed system is a server-client based system, where the server represents the stock exchange, bank and companies, and the clients represent the artificial and PC players. It is realized under python with hand crafted protocols. The clients can send messages to buy, sell, cancel orders and query relevant information from server. The server can keep listening the the clients, processing their orders, updating the relevant information and responding to them. Moreover, the server can also update prices and can be recovered from failure. There are four parts in the system package, which are 'server.py', 'client.py', 'sock_helper.py', and the 'server_backup.db' in the fold 'data'. Below is a concise description of the function and relationship between the four parts.
 
 - **server.py:**  the class that realizes the function of stock exchange. It can be accessed remotely by 'client.py' class. It can receive messages from client and respond to them by using the methods defined in 'sock_help.py'. While operating, server keeps saving information in 'server_backup.db' so that it can be recovered from failure.
