@@ -14,12 +14,13 @@ To start up the server:
 
     python server.py
 
-
+![alt text](https://github.com/zhiqianseah/CS262_Project/blob/master/Example/readme1.png?raw=true)
 
 To start up the server by reading from backup file:
 
     python server.py 1
 
+![alt text](https://github.com/zhiqianseah/CS262_Project/blob/master/Example/readme2.png?raw=true)
 
 ### Client Commands
 To start up a pc player:
@@ -27,46 +28,47 @@ A pc player's name must be prefixed with "pc_", there's no command prompt for us
 
     python client.py pc_user password
 
-
+![alt text](https://github.com/zhiqianseah/CS262_Project/blob/master/Example/readme3.png?raw=true)
 
 To start up a human player:
 The password will be memorized by the server during the first login attempt and the same password should be used for any future authentication. There's functionality to change/update the password once it's set. 
 
     python client.py user password
 
-
+![alt text](https://github.com/zhiqianseah/CS262_Project/blob/master/Example/readme4.png?raw=true)
 
 To query all the stock prices:
 
     Enter Command: queryPrice
 
-
+![alt text](https://github.com/zhiqianseah/CS262_Project/blob/master/Example/readme5.png?raw=true)
 
 To query the account balance and current stock holdings:
 
     Enter Command: queryBalance
 
-
+![alt text](https://github.com/zhiqianseah/CS262_Project/blob/master/Example/readme6.png?raw=true)
 
 To place a buy order:
 
     Enter Command: buy,Company1,10,29.5,20
 
-
+![alt text](https://github.com/zhiqianseah/CS262_Project/blob/master/Example/readme7.png?raw=true)
 
 To place a sell order:
 
     Enter Command: sell,Company1,10,29.5,20
 
-
+![alt text](https://github.com/zhiqianseah/CS262_Project/blob/master/Example/readme8.png?raw=true)
 
 To query all the pending orders:
 
     Enter Command: queryPendingOrder
 
-
+![alt text](https://github.com/zhiqianseah/CS262_Project/blob/master/Example/readme9.png?raw=true)
 
 To cancel a pending order:
 
     Enter Command: cancel,1
 
+![alt text](https://github.com/zhiqianseah/CS262_Project/blob/master/Example/readme10.png?raw=true)
