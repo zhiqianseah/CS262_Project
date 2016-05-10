@@ -12,13 +12,13 @@ The project is to build a distributed system for stock market simulation. The di
 ### Server Commands
 To start up the server:
 
->> python server.py
+    python server.py
 
 ![readme1.png]({{site.baseurl}}/readme1.png)
 
 To start up the server by reading from backup file:
 
->> python server.py 1
+    python server.py 1
 
 ![readme2.png]({{site.baseurl}}/readme2.png)
 
@@ -26,50 +26,49 @@ To start up the server by reading from backup file:
 To start up a pc player:
 A pc player's name must be prefixed with "pc_", there's no command prompt for user to enter, if a pc player is initialized. Every 10 seconds the screen of pc player will be updated with the most recent balance.
 
->> python client.py pc_user password
+    python client.py pc_user password
 
 ![readme3.png]({{site.baseurl}}/readme3.png)
 
 To start up a human player:
 The password will be memorized by the server during the first login attempt and the same password should be used for any future authentication. There's functionality to change/update the password once it's set. 
 
->> python client.py user password
+    python client.py user password
 
 ![readme4.png]({{site.baseurl}}/readme4.png)
 
 To query all the stock prices:
 
->> Enter Command: queryPrice
+    Enter Command: queryPrice
 
 ![readme5.png]({{site.baseurl}}/readme5.png)
 
 To query the account balance and current stock holdings:
 
->> Enter Command: queryBalance
+    Enter Command: queryBalance
 
 ![readme6.png]({{site.baseurl}}/readme6.png)
 
 To place a buy order:
 
->> Enter Command: buy,Company1,10,29.5,20
+    Enter Command: buy,Company1,10,29.5,20
 
 ![readme7.png]({{site.baseurl}}/readme7.png)
 
 To place a sell order:
 
->> Enter Command: sell,Company1,10,29.5,20
+    Enter Command: sell,Company1,10,29.5,20
 
 ![readme8.png]({{site.baseurl}}/readme8.png)
 
 To query all the pending orders:
 
->> Enter Command: queryPendingOrder
+    Enter Command: queryPendingOrder
 
 ![readme9.png]({{site.baseurl}}/readme9.png)
 
 To cancel a pending order:
 
->> Enter Command: cancel,1
+    Enter Command: cancel,1
 
 ![readme10.png]({{site.baseurl}}/readme10.png)
-
